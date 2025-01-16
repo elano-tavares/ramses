@@ -1,0 +1,173 @@
+org 255 ; Somatorio da diagonal principal
+somatorio: db 0
+
+org 254 ; Entrada N que representa ordem da matriz
+n: db 0
+
+org 248 ; Lista de Transformações na matriz
+t: dab [6]
+
+org 223 ; Criação da matriz no espaço de memória
+matriz:
+dab 1,2,3,4,5
+dab 6,7,8,9,10
+dab 11,12,13,14,15
+dab 16,17,18,19,20
+dab 21,22,23,24,25
+
+org 220 ; Lista de mascaras das transformações
+m1: db 192 ; Máscara [7:6]
+m2: db 56 ; Máscara [5:3]
+m3: db 7 ; Máscara [2:0]
+
+org 210 ; Variaveis globais
+end_linhas: dab [5] ; Endereços das linhas
+max_linhas: db 25 ; Numero maximo da matriz
+contador: db 0 ; Contador do valor de x durantes as operações
+cont_tl: db 0 ; Contador para troca de linhas
+linha_origem: db 0 ; Linha origem da transformação do loop
+linha_destino: db 0 ; Linha origem da transformação do loop
+
+
+;_____________________________________________________________________________________
+
+org 0 ; Código base
+
+inicio: ; Início da execução
+ldr b, n
+str b, cont_tl
+
+endereco_linhas: ; Index de cada linha da matriz
+str a, end_linhas,x
+add a, n
+add x, #1
+sub b, #1
+jz continua_0
+jmp endereco_linhas
+
+continua_0: ; Continuação 0 do codigo
+jsr zerar
+
+operacoes: ; Inicio das Operações
+
+define_linhas: ;(pt0) ; Definição das linhas da matriz
+define_linha_origem: ;(pt1)
+ldr x, t,x
+and x, m3
+sub x, #1
+jn continua_1
+ldr a, end_linhas,x
+str a, linha_origem
+ldr x, contador
+define_linha_destino: ;(pt2)
+ldr x, t,x
+and x, m2
+shr x
+shr x
+shr x
+sub x, #1
+ldr a, end_linhas,x
+str a, linha_destino
+ldr x, contador
+
+qual_operacao: ; Selecionando a operacao
+ldr b, n
+ldr a, t,x
+and a, m1
+sub a, #64
+jz troca_linhas
+sub a, #64
+jz soma_linhas
+sub a, #64
+jz subtrai_linhas
+
+continua_1: ; Continuação 1 do codigo
+jsr zerar
+ldr a, n
+
+soma_diagonal: ; Somatório da diagonal principal
+add b, matriz,x
+str b, somatorio
+add x, n
+add x, #1
+sub a, #1
+jz fim
+jmp soma_diagonal
+
+troca_linhas: ; Desenvolvimento da Trocar linhas
+ldr x, linha_destino
+ldr a, matriz,x
+ldr x, linha_origem
+ldr b, matriz,x
+str a, matriz,x
+ldr x, linha_destino
+str b, matriz,x
+jsr atualiza_ponteiro
+ldr b, cont_tl
+sub b, #1
+str b, cont_tl
+jz voltar
+jmp troca_linhas
+
+soma_linhas: ; Desenvolvimento da Somar Linhas
+ldr x, linha_destino
+ldr a, matriz,x
+ldr x, linha_origem
+add a, matriz,x
+ldr x, linha_destino
+str a, matriz,x
+jsr atualiza_ponteiro
+sub b, #1
+jz voltar
+jmp soma_linhas
+
+subtrai_linhas: ; Desenvolvimento da Subtrair Linhas
+ldr x, linha_destino
+ldr a, matriz,x
+ldr x, linha_origem
+sub a, matriz,x
+ldr x, linha_destino
+str a, matriz,x
+jsr atualiza_ponteiro
+sub b, #1
+jz voltar
+jmp subtrai_linhas
+
+zerar: ; Zerador de Registrador
+db 0
+ldr a, #0
+ldr b, #0
+ldr x, #0
+jmp zerar,i
+
+voltar: ; Voltar para a proxima transformação
+ldr x, contador
+add x, #1
+str x, contador
+jmp operacoes
+
+atualiza_ponteiro: ; Atualiza o ponteiro para das linhas
+db 0
+ldr a, linha_destino
+add a, #1
+str a, linha_destino
+ldr a, linha_origem
+add a, #1
+str a, linha_origem
+jmp atualiza_ponteiro,i
+
+fim: ; Final de execução
+jsr zerar 
+ldr b, max_linhas
+fim_1:
+add a, #1
+str a, matriz,x
+add x, #1
+sub b, #1
+jz fim_2
+jmp fim_1
+fim_2:
+jsr zerar
+str a, contador
+str a, cont_tl
+hlt
